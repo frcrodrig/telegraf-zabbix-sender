@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+
+import sys
+import os
+import json
+sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'py-zabbix'))
+from pyzabbix import ZabbixMetric, ZabbixSender
+
+
+if __name__ == '__main__':
+    data = json.load(sys.stdin)
+    metrics = []
+    for metric in data['metrics'] if 'metrics' in data else (data,):
+        if 'zabbix_key' in metric['tags']:
+            metrics.append(ZabbixMetric(
+                '-',
+                metric['tags']['zabbix_key'],
+                next(iter(metric['fields'].values())),
+                metric['timestamp'] if 'timestamp' in metric else None,
+            ))
+    zbx = ZabbixSender(use_config=True)
+    resp = zbx.send(metrics)
+    print(repr(resp), file=sys.stderr)
